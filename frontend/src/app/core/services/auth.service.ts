@@ -1,10 +1,11 @@
 import { Injectable, signal, computed, inject } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Router } from "@angular/router";
-import { Observable, tap, map, catchError, of } from "rxjs";
+import { Observable, tap, map, catchError, of, throwError } from "rxjs";
 import { User, AuthResponse } from "../models/user.model";
 import { ApiResponse } from "../models/api-response.model";
 import { environment } from "../../../environments/environment";
+import { DemoService } from "./demo.service";
 
 @Injectable({
   providedIn: "root",
@@ -12,6 +13,7 @@ import { environment } from "../../../environments/environment";
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private demoService = inject(DemoService);
   private apiUrl = `${environment.apiUrl}/auth`;
 
   private tokenKey = "portfolio_pro_token";
@@ -28,6 +30,16 @@ export class AuthService {
   }
 
   private initFromStorage(): void {
+    // Restore demo mode from storage
+    const savedDemo = localStorage.getItem("portfolio_pro_demo_role");
+    if (savedDemo === "trader" || savedDemo === "admin") {
+      this.demoService.activate(savedDemo);
+      const user = this.demoService.getDemoUser(savedDemo);
+      this.currentUser.set(user);
+      this.token.set("demo-token-" + savedDemo);
+      return;
+    }
+
     const savedToken = localStorage.getItem(this.tokenKey);
     const savedUser = localStorage.getItem(this.userKey);
 
@@ -50,6 +62,15 @@ export class AuthService {
   }
 
   fetchCurrentUser(): Observable<User | null> {
+    if (this.demoService.isDemoMode()) {
+      const role = this.demoService.demoRole();
+      if (role) {
+        const user = this.demoService.getDemoUser(role);
+        this.currentUser.set(user);
+        return of(user);
+      }
+      return of(null);
+    }
     if (!this.token()) return of(null);
     return this.http.get<ApiResponse<User>>(`${this.apiUrl}/me`).pipe(
       map((res) => res.data),
@@ -69,6 +90,24 @@ export class AuthService {
     username: string;
     password?: string;
   }): Observable<ApiResponse<AuthResponse>> {
+    // Demo mode bypass
+    const u = credentials.username?.toLowerCase().trim();
+    const p = credentials.password;
+    if ((u === "trader" && p === "trader123") || (u === "admin" && p === "admin123")) {
+      const role: "trader" | "admin" = u === "admin" ? "admin" : "trader";
+      this.demoService.activate(role);
+      const user = this.demoService.getDemoUser(role);
+      this.currentUser.set(user);
+      this.token.set("demo-token-" + role);
+      localStorage.setItem("portfolio_pro_demo_role", role);
+      const fakeResp: ApiResponse<AuthResponse> = {
+        success: true,
+        message: "Demo login",
+        timestamp: new Date().toISOString(),
+        data: { token: "demo-token-" + role, type: "Bearer", id: user.id, username: user.username, email: user.email, fullName: user.fullName, role: user.role, virtualBalance: user.virtualBalance }
+      };
+      return of(fakeResp);
+    }
     return this.http
       .post<ApiResponse<AuthResponse>>(`${this.apiUrl}/login`, credentials)
       .pipe(
@@ -131,6 +170,8 @@ export class AuthService {
   }
 
   logout(): void {
+    this.demoService.deactivate();
+    localStorage.removeItem("portfolio_pro_demo_role");
     this.token.set(null);
     this.currentUser.set(null);
     localStorage.removeItem(this.tokenKey);
@@ -142,6 +183,11 @@ export class AuthService {
     fullName: string,
     email: string,
   ): Observable<ApiResponse<User>> {
+    if (this.demoService.isDemoMode()) {
+      const user = { ...this.currentUser()!, fullName, email };
+      this.currentUser.set(user);
+      return of({ success: true, message: 'Profile updated (demo)', timestamp: new Date().toISOString(), data: user });
+    }
     return this.http
       .put<ApiResponse<User>>(`${this.apiUrl}/profile`, { fullName, email })
       .pipe(
@@ -155,6 +201,9 @@ export class AuthService {
   }
 
   resetBalance(): Observable<ApiResponse<User>> {
+    if (this.demoService.isDemoMode()) {
+      return of({ success: true, message: 'Balance reset not available in demo', timestamp: new Date().toISOString(), data: this.currentUser()! });
+    }
     return this.http
       .post<ApiResponse<User>>(`${this.apiUrl}/reset-balance`, {})
       .pipe(
@@ -168,6 +217,9 @@ export class AuthService {
   }
 
   addVirtualFunds(amount: number): Observable<ApiResponse<User>> {
+    if (this.demoService.isDemoMode()) {
+      return of({ success: true, message: 'Funds added in demo (not persisted)', timestamp: new Date().toISOString(), data: this.currentUser()! });
+    }
     return this.http
       .post<ApiResponse<User>>(`${this.apiUrl}/add-funds`, { amount })
       .pipe(
