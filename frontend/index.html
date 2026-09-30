@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PortfolioPro | Stock Trading & Portfolio Management</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body class="bg-dark text-light">
+
+  <!-- TOP LIVE MARKET TICKER -->
+  <div class="ticker-wrap border-bottom border-secondary-subtle">
+    <div class="ticker-move" id="liveTickerBar">
+      <span class="ticker-item"><i class="fa-solid fa-spinner fa-spin"></i> Loading live market feed...</span>
+    </div>
+  </div>
+
+  <!-- MAIN NAVIGATION BAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-surface sticky-top border-bottom border-secondary-subtle px-3 py-2">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="#" onclick="app.navigate('market'); return false;">
+        <div class="brand-icon">
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <span class="fw-bold tracking-tight text-gradient">Portfolio<span class="text-white">Pro</span></span>
+        <span class="badge bg-emerald-subtle text-emerald border border-emerald-subtle text-xs">VIRTUAL ₹</span>
+      </a>
+
+      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1 ms-lg-3">
+          <li class="nav-item">
+            <a class="nav-link active" id="nav-market" href="#" onclick="app.navigate('market'); return false;">
+              <i class="fa-solid fa-globe me-1"></i> Market
+            </a>
+          </li>
+          <li class="nav-item auth-required">
+            <a class="nav-link" id="nav-portfolio" href="#" onclick="app.navigate('portfolio'); return false;">
+              <i class="fa-solid fa-briefcase me-1"></i> Portfolio
+            </a>
+          </li>
+          <li class="nav-item auth-required">
+            <a class="nav-link" id="nav-trading" href="#" onclick="app.navigate('trading'); return false;">
+              <i class="fa-solid fa-arrow-right-arrow-left me-1"></i> Orders & Trades
+            </a>
+          </li>
+          <li class="nav-item auth-required">
+            <a class="nav-link" id="nav-risk" href="#" onclick="app.navigate('risk'); return false;">
+              <i class="fa-solid fa-shield-halved me-1"></i> Risk Radar
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="nav-analysis" href="#" onclick="app.navigate('analysis'); return false;">
+              <i class="fa-solid fa-chart-candlestick me-1"></i> Technical Analysis
+            </a>
+          </li>
+          <li class="nav-item admin-only d-none">
+            <a class="nav-link text-warning fw-semibold" id="nav-admin" href="#" onclick="app.navigate('admin'); return false;">
+              <i class="fa-solid fa-user-shield me-1"></i> Admin Portal
+            </a>
+          </li>
+        </ul>
+
+        <!-- User Controls / Balance Widget -->
+        <div class="d-flex align-items-center gap-3">
+          <div id="userBalanceWidget" class="balance-card auth-required d-none">
+            <div class="text-xs text-muted text-uppercase fw-semibold">Virtual Cash</div>
+            <div class="text-emerald fw-bold font-mono" id="navUserBalance">₹10,00,000.00</div>
+          </div>
+
+          <div id="authGuestButtons" class="d-flex gap-2">
+            <button class="btn btn-outline-light btn-sm px-3" onclick="app.openLoginModal()">
+              <i class="fa-solid fa-right-to-bracket me-1"></i> Login
+            </button>
+            <button class="btn btn-emerald btn-sm px-3" onclick="app.openRegisterModal()">
+              <i class="fa-solid fa-user-plus me-1"></i> Register
+            </button>
+          </div>
+
+          <div id="authUserMenu" class="dropdown auth-required d-none">
+            <button class="btn btn-surface border border-secondary-subtle dropdown-toggle d-flex align-items-center gap-2 py-1 px-2" type="button" data-bs-toggle="dropdown">
+              <div class="user-avatar" id="navUserInitial">U</div>
+              <span class="d-none d-sm-inline fw-semibold text-sm" id="navUsername">User</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-secondary-subtle">
+              <li><h6 class="dropdown-header text-xs text-uppercase" id="dropdownRole">Trader</h6></li>
+              <li><a class="dropdown-item" href="#" onclick="app.openProfileModal(); return false;"><i class="fa-solid fa-user-gear me-2"></i> Profile & Settings</a></li>
+              <li><a class="dropdown-item text-warning" href="#" onclick="app.resetBalance(); return false;"><i class="fa-solid fa-rotate-left me-2"></i> Reset Cash (₹10L)</a></li>
+              <li><hr class="dropdown-divider border-secondary-subtle"></li>
+              <li><a class="dropdown-item text-danger" href="#" onclick="app.logout(); return false;"><i class="fa-solid fa-power-off me-2"></i> Logout</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- NOTIFICATION TOAST CONTAINER -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+    <div id="appToast" class="toast align-items-center text-bg-dark border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body d-flex align-items-center gap-2" id="toastMessage">
+          <i class="fa-solid fa-circle-check text-emerald"></i> <span>Notification</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP VIEW CONTAINER -->
+  <main class="container-fluid py-4 px-3 px-lg-4" id="mainAppContent">
+    <!-- Rendered dynamically by app.ts -->
+  </main>
+
+  <!-- MODALS -->
+
+  <!-- LOGIN MODAL -->
+  <div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-surface border-secondary-subtle shadow-2xl">
+        <div class="modal-header border-secondary-subtle">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-lock text-emerald me-2"></i> Sign In to PortfolioPro</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="alert alert-info py-2 text-xs mb-3">
+            <strong>Demo Accounts:</strong><br>
+            • Admin: <code>admin</code> / <code>admin123</code><br>
+            • Trader: <code>trader</code> / <code>trader123</code>
+          </div>
+          <form id="loginForm" onsubmit="app.handleLogin(event)">
+            <div class="mb-3">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Username</label>
+              <input type="text" id="loginUsername" class="form-control" required placeholder="Enter username" />
+            </div>
+            <div class="mb-4">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Password</label>
+              <input type="password" id="loginPassword" class="form-control" required placeholder="Enter password" />
+            </div>
+            <button type="submit" class="btn btn-emerald w-100 py-2 fw-semibold">
+              <i class="fa-solid fa-right-to-bracket me-1"></i> Sign In
+            </button>
+          </form>
+          <div class="text-center mt-3 text-sm text-muted">
+            Don't have an account? <a href="#" class="text-emerald text-decoration-none fw-semibold" onclick="app.switchToRegister(); return false;">Register with ₹10,00,000</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTER MODAL -->
+  <div class="modal fade" id="registerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-surface border-secondary-subtle shadow-2xl">
+        <div class="modal-header border-secondary-subtle">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus text-emerald me-2"></i> Create Virtual Trading Account</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="alert alert-success py-2 text-xs mb-3">
+            <i class="fa-solid fa-gift text-emerald me-1"></i> You will receive <strong>₹10,00,000</strong> instant virtual cash on signup!
+          </div>
+          <form id="registerForm" onsubmit="app.handleRegister(event)">
+            <div class="mb-3">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Full Name</label>
+              <input type="text" id="regFullName" class="form-control" placeholder="e.g. Piyush Singh" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Username</label>
+              <input type="text" id="regUsername" class="form-control" required placeholder="Choose username" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Email</label>
+              <input type="email" id="regEmail" class="form-control" required placeholder="name@example.com" />
+            </div>
+            <div class="mb-4">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Password</label>
+              <input type="password" id="regPassword" class="form-control" required minlength="6" placeholder="At least 6 characters" />
+            </div>
+            <button type="submit" class="btn btn-emerald w-100 py-2 fw-semibold">
+              <i class="fa-solid fa-bolt me-1"></i> Register & Start Trading
+            </button>
+          </form>
+          <div class="text-center mt-3 text-sm text-muted">
+            Already have an account? <a href="#" class="text-emerald text-decoration-none fw-semibold" onclick="app.switchToLogin(); return false;">Sign In</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRADE ORDER MODAL -->
+  <div class="modal fade" id="orderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-surface border-secondary-subtle shadow-2xl">
+        <div class="modal-header border-secondary-subtle">
+          <div>
+            <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="orderModalTitle">
+              <span id="orderModalSymbol" class="badge bg-primary">SYMBOL</span>
+              <span id="orderModalName">Company Name</span>
+            </h5>
+            <div class="text-xs text-muted mt-1">
+              Live Price: <span id="orderModalPrice" class="fw-bold font-mono text-light">₹0.00</span>
+              <span id="orderModalChange" class="badge ms-1 bg-emerald-subtle text-emerald">+0.00%</span>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- Buy / Sell Toggle Tabs -->
+          <div class="trade-tabs mb-4">
+            <button class="trade-tab-btn active-buy" id="btnSideBuy" onclick="app.setOrderSide('BUY')">
+              <i class="fa-solid fa-arrow-trend-up me-1"></i> BUY
+            </button>
+            <button class="trade-tab-btn" id="btnSideSell" onclick="app.setOrderSide('SELL')">
+              <i class="fa-solid fa-arrow-trend-down me-1"></i> SELL
+            </button>
+          </div>
+
+          <form id="orderForm" onsubmit="app.submitTradeOrder(event)">
+            <input type="hidden" id="orderStockSymbol" />
+
+            <!-- Order Execution Type Selection -->
+            <div class="mb-3">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Order Type</label>
+              <div class="btn-group w-100" role="group">
+                <input type="radio" class="btn-check" name="orderType" id="typeMarket" value="MARKET" checked onchange="app.handleOrderTypeChange('MARKET')">
+                <label class="btn btn-outline-secondary btn-sm" for="typeMarket">MARKET</label>
+
+                <input type="radio" class="btn-check" name="orderType" id="typeLimit" value="LIMIT" onchange="app.handleOrderTypeChange('LIMIT')">
+                <label class="btn btn-outline-secondary btn-sm" for="typeLimit">LIMIT</label>
+
+                <input type="radio" class="btn-check" name="orderType" id="typeStopLoss" value="STOP_LOSS" onchange="app.handleOrderTypeChange('STOP_LOSS')">
+                <label class="btn btn-outline-secondary btn-sm" for="typeStopLoss">STOP-LOSS</label>
+              </div>
+            </div>
+
+            <!-- Target Price input for LIMIT -->
+            <div class="mb-3 d-none" id="targetPriceGroup">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Target Limit Price (₹)</label>
+              <input type="number" step="0.05" id="orderTargetPrice" class="form-control font-mono" placeholder="e.g. 2950.00" />
+            </div>
+
+            <!-- Stop Price input for STOP_LOSS -->
+            <div class="mb-3 d-none" id="stopPriceGroup">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Stop Trigger Price (₹)</label>
+              <input type="number" step="0.05" id="orderStopPrice" class="form-control font-mono" placeholder="e.g. 2900.00" />
+            </div>
+
+            <!-- Quantity Input -->
+            <div class="mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label text-xs text-muted text-uppercase fw-semibold mb-0">Quantity (Shares)</label>
+                <span class="text-xs text-muted" id="orderAvailableContext">Available: ₹10,00,000</span>
+              </div>
+              <div class="input-group">
+                <button class="btn btn-outline-secondary" type="button" onclick="app.adjustQuantity(-1)"><i class="fa-solid fa-minus"></i></button>
+                <input type="number" id="orderQuantity" class="form-control text-center font-mono fw-bold fs-5" value="1" min="1" required oninput="app.recalculateOrderSummary()" />
+                <button class="btn btn-outline-secondary" type="button" onclick="app.adjustQuantity(1)"><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+
+            <!-- Order Cost Summary Box -->
+            <div class="p-3 bg-dark-subtle rounded-3 border border-secondary-subtle mb-4">
+              <div class="d-flex justify-content-between text-xs text-muted mb-1">
+                <span>Estimated Price</span>
+                <span class="font-mono text-light" id="summaryUnitPrice">₹0.00</span>
+              </div>
+              <div class="d-flex justify-content-between text-xs text-muted mb-2">
+                <span>Brokerage & Taxes</span>
+                <span class="text-emerald fw-semibold">₹0.00 (Virtual)</span>
+              </div>
+              <div class="d-flex justify-content-between fw-bold pt-2 border-top border-secondary-subtle">
+                <span id="summaryTotalLabel">Total Cost</span>
+                <span class="font-mono text-emerald fs-6" id="summaryTotalAmount">₹0.00</span>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-emerald w-100 py-2 fw-bold text-uppercase" id="btnSubmitOrder">
+              Execute Buy Order
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE MODAL -->
+  <div class="modal fade" id="profileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-surface border-secondary-subtle shadow-2xl">
+        <div class="modal-header border-secondary-subtle">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-gear text-emerald me-2"></i> Account Settings</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="profileForm" onsubmit="app.handleUpdateProfile(event)">
+            <div class="mb-3">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Full Name</label>
+              <input type="text" id="profileFullName" class="form-control" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Email Address</label>
+              <input type="email" id="profileEmail" class="form-control" required />
+            </div>
+            <div class="mb-4">
+              <label class="form-label text-xs text-muted text-uppercase fw-semibold">Account Role</label>
+              <input type="text" id="profileRole" class="form-control font-mono" disabled />
+            </div>
+            <button type="submit" class="btn btn-outline-light w-100 py-2 fw-semibold mb-3">
+              <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+            </button>
+          </form>
+          <div class="p-3 bg-dark-subtle rounded-3 border border-secondary-subtle">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold text-sm">Virtual Balance Reset</div>
+                <div class="text-xs text-muted">Restore your demo funds to ₹10,00,000.00</div>
+              </div>
+              <button class="btn btn-outline-warning btn-sm" onclick="app.resetBalance()">
+                <i class="fa-solid fa-rotate-left me-1"></i> Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN ADD/EDIT STOCK MODAL -->
+  <div class="modal fade" id="adminStockModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content bg-surface border-secondary-subtle shadow-2xl">
+        <div class="modal-header border-secondary-subtle">
+          <h5 class="modal-title fw-bold" id="adminStockModalTitle"><i class="fa-solid fa-plus-circle text-warning me-2"></i> Add New Stock</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="adminStockForm" onsubmit="app.handleSaveAdminStock(event)">
+            <input type="hidden" id="adminStockId" />
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label text-xs text-muted text-uppercase fw-semibold">Symbol</label>
+                <input type="text" id="adminStockSymbol" class="form-control text-uppercase font-mono" required placeholder="e.g. WIPRO" />
+              </div>
+              <div class="col-md-8">
+                <label class="form-label text-xs text-muted text-uppercase fw-semibold">Company Name</label>
+                <input type="text" id="adminStockName" class="form-control" required placeholder="e.g. Wipro Limited" />
+              </div>
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label text-xs text-muted text-uppercase fw-semibold">Sector</label>
+                <input type="text" id="adminStockSector" class="form-control" required placeholder="e.g. Information Technology" />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label text-xs text-muted text-uppercase fw-semibold">Current Price (₹)</label>
+                <input type="number" step="0.05" id="adminStockPrice" class="form-control font-mono" required placeholder="540.00" />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label text-xs text-muted text-uppercase fw-semibold">Market Cap</label>
+                <input type="text" id="adminStockMarketCap" class="form-control" placeholder="2.80T" />
+              </div>
+            </div>
+            <div class="row g-3 mb-4">
+              <div class="col-md-3">
+                <label class="form-label text-xs text-muted text-uppercase fw-semibold">P/E Ratio</label>
+                <input type="number" step="0.01" id="adminStockPe" class="form-control" placeholder="22.5" />
+              </div>
+              <div class="col-md-3">
+                <label class="form-label text-xs text-muted text-uppercase fw-semibold">Beta</label>
+                <input type="number" step="0.01" id="adminStockBeta" class="form-control" placeholder="0.95" />
+              </div>
+              <div class="col-md-3">
+                <label class="form-label text-xs text-muted text-uppercase fw-semibold">Div. Yield (%)</label>
+                <input type="number" step="0.01" id="adminStockDiv" class="form-control" placeholder="1.20" />
+              </div>
+              <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" id="adminStockActive" checked>
+                  <label class="form-check-label text-sm fw-semibold" for="adminStockActive">Trading Active</label>
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-warning w-100 py-2 fw-bold text-dark">
+              <i class="fa-solid fa-check me-1"></i> Save Stock
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Main Application TypeScript/JS -->
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
